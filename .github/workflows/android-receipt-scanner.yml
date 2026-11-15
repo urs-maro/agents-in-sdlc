@@ -1,0 +1,22 @@
+name: Build Bon Scanner APK
+on:
+  push:
+    paths: ["android-receipt-scanner/**", ".github/workflows/android-receipt-scanner.yml"]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android-receipt-scanner
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: "8.9" }
+      - run: gradle testDebugUnitTest assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bon-scanner-apk
+          path: android-receipt-scanner/app/build/outputs/apk/debug/app-debug.apk
