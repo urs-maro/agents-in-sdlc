@@ -28,7 +28,15 @@ function doPost(e) {
       const v = colB[i][0];
       if (v instanceof Date && v.getTime() > date.getTime()) { row = FIRST_ROW + i; break; }
     }
-    if (row <= last) sh.insertRowBefore(row);
+    if (row === FIRST_ROW && last >= FIRST_ROW) {
+      // Nu inserăm deasupra primului rând: formulele din alte celule (SUBTOTAL, Sumar lunar,
+      // Dashboard) încep la rândul 11 și s-ar muta la 12. Inserăm sub el și coborâm datele.
+      sh.insertRowAfter(FIRST_ROW);
+      sh.getRange(FIRST_ROW, 2, 1, 8).copyTo(sh.getRange(FIRST_ROW + 1, 2, 1, 8));
+      sh.getRange(FIRST_ROW, 2, 1, 8).clearContent();
+    } else if (row <= last) {
+      sh.insertRowBefore(row);
+    }
 
     const vals = [date, p.document || '', p.partner || '', p.category || '', '', '', '', ''];
     vals[4 + 'FGHI'.indexOf(p.column)] = Number(p.amount);
