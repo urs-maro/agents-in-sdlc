@@ -77,4 +77,9 @@ class ReceiptParserTest {
         assertTrue(d.paidByCard)
         assertFalse(d.isIncome)
     }
+
+    @Test fun transactionNumberOnSeparateRow() {
+        val rows = listOf("S.C. OMV PETROM MARKETING S.R.L.", "BON FISCAL", "1110403/2/261104/111", "NUMAR TRANZACTIE:", "* 4 MOTORINA STANDARD", "TOTAL:   456,91")
+        assertEquals("Bon fiscal 1110403/2/261104/111", ReceiptParser.parse(rows).document)
+    }
 }

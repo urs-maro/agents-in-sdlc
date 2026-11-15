@@ -127,6 +127,17 @@ object ReceiptParser {
             "(?i)\\bnr\\.?\\s*doc(?:ument)?\\s*[:.]?\\s*(\\d+)",
         )
         for (p in bonPatterns) Regex(p).find(text)?.let { return "Bon fiscal " + it.groupValues[1] }
+        // eticheta și numărul pot ajunge pe rânduri diferite: căutăm numărul pe rândurile vecine
+        val rows = text.lines()
+        val label = Regex("(?i)tranzac[tț]ie|nr\\.?\\s*bon|num[aă]r\\s*bon|\\bBF\\b")
+        val number = Regex("(?<![\\d.,:])(\\d{3,}(?:[/\\-]\\d+)*)(?![\\d.,:])")
+        rows.forEachIndexed { i, r ->
+            if (label.containsMatchIn(r)) {
+                for (j in listOf(i, i - 1, i + 1)) {
+                    rows.getOrNull(j)?.let { n -> number.find(n.substringAfter(':'))?.let { return "Bon fiscal " + it.groupValues[1] } }
+                }
+            }
+        }
         return if (isInvoice) "Factura" else "Bon fiscal"
     }
 
