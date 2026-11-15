@@ -59,6 +59,7 @@ class MainActivity : AppCompatActivity() {
         spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, ReceiptParser.CATEGORIES)
         spinner.setSelection(ReceiptParser.CATEGORIES.indexOf("Altele"))
 
+        findViewById<Button>(R.id.btnAbout).setOnClickListener { showAbout() }
         findViewById<Button>(R.id.btnScan).setOnClickListener {
             scanner.getStartScanIntent(this)
                 .addOnSuccessListener { scanLauncher.launch(IntentSenderRequest.Builder(it).build()) }
@@ -136,6 +137,14 @@ class MainActivity : AppCompatActivity() {
                 setStatus("Eroare la trimitere: ${e.message}", false); btnSend.isEnabled = true
             }
         }
+    }
+
+    private fun showAbout() {
+        val v = layoutInflater.inflate(R.layout.dialog_about, null)
+        val ver = packageManager.getPackageInfo(packageName, 0).versionName
+        v.findViewById<TextView>(R.id.aboutVersion).text = "Versiunea $ver"
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setView(v).setPositiveButton("OK", null).show()
     }
 
     private fun field(id: Int) = findViewById<EditText>(id)

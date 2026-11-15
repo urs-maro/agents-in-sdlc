@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <!-- umbră -->
+    <path android:fillColor="#33000000" android:pathData="M37,30h36v48l-4.5,-3 -4.5,3 -4.5,-3 -4.5,3 -4.5,-3 -4.5,3 -4.5,-3 -4.5,3z"/>
+    <!-- hârtia bonului -->
+    <path android:fillColor="#FFFFFF" android:pathData="M35,28h36v48l-4.5,-3 -4.5,3 -4.5,-3 -4.5,3 -4.5,-3 -4.5,3 -4.5,-3 -4.5,3z"/>
+    <!-- antet -->
+    <path android:fillColor="#0F4C5C" android:pathData="M41,34h24v3.2h-24z"/>
+    <!-- rânduri -->
+    <path android:fillColor="#9FB7BE" android:pathData="M41,42h14v2h-14zM59,42h6v2h-6zM41,47h11v2h-11zM59,47h6v2h-6zM41,52h16v2h-16zM59,52h6v2h-6z"/>
+    <!-- linie total -->
+    <path android:fillColor="#0F4C5C" android:pathData="M41,58h24v1.2h-24zM41,61.5h9v3h-9zM56,61.5h9v3h-9z"/>
+    <!-- insignă cu bifă -->
+    <path android:fillColor="#2BB673" android:pathData="M71,68m-12,0a12,12 0,1 1,24 0a12,12 0,1 1,-24 0"/>
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="3.2"
+        android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M65.5,68.5l4,4 7.5,-8"/>
+</vector>
