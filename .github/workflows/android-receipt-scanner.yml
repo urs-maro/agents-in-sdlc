@@ -20,13 +20,32 @@ jobs:
       - run: gradle testDebugUnitTest assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: bon-scanner-apk
+          name: ContabilPrimar-apk
           path: android-receipt-scanner/app/build/outputs/apk/debug/app-debug.apk
+      - name: Name APK with app name and version
+        id: apk
+        run: |
+          VER=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          cp app/build/outputs/apk/debug/app-debug.apk "ContabilPrimar.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "ContabilPrimar-v$VER.apk"
+          echo "ver=$VER" >> "$GITHUB_OUTPUT"
+      - name: Remove old release (Bon Scanner)
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh release delete bon-scanner-latest --yes --cleanup-tag || true
+      - name: Remove previous APKs from release
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          for a in $(gh release view contabil-primar --json assets -q '.assets[].name' 2>/dev/null); do
+            gh release delete-asset contabil-primar "$a" --yes || true
+          done
       - name: Publish APK as release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: bon-scanner-latest
-          name: Bon Scanner (ultima versiune)
+          tag_name: contabil-primar
+          name: Contabil Primar v${{ steps.apk.outputs.ver }}
+          body: "Contabil Primar v${{ steps.apk.outputs.ver }} — © 2026 CRIO Software"
           prerelease: true
           make_latest: false
-          files: android-receipt-scanner/app/build/outputs/apk/debug/app-debug.apk
+          files: |
+            android-receipt-scanner/ContabilPrimar.apk
+            android-receipt-scanner/ContabilPrimar-v${{ steps.apk.outputs.ver }}.apk
