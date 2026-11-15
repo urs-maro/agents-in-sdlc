@@ -73,7 +73,7 @@ class ReceiptParserTest {
         assertEquals(456.91, d.amount!!, 0.001)
         assertEquals("Bon fiscal 1110403/2/261104/111", d.document)
         assertEquals("OMV PETROM MARKETING SRL - Motorina standard", d.partner)
-        assertEquals("Altele", d.category)
+        assertEquals("Combustibil", d.category)
         assertTrue(d.paidByCard)
         assertFalse(d.isIncome)
     }

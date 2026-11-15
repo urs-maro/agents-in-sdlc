@@ -21,7 +21,7 @@ object ReceiptParser {
     /** Categoriile din lista de validare a coloanei E din foaia "Registru". */
     val CATEGORIES = listOf(
         "Încasare servicii IT", "Taxe și impozite", "Contabilitate",
-        "Abonamente software", "Echipamente", "Utilități", "Altele",
+        "Abonamente software", "Echipamente", "Utilități", "Combustibil", "Altele",
     )
 
     // ---------- reconstruirea rândurilor după poziție ----------
@@ -185,6 +185,7 @@ object ReceiptParser {
             any("CONTABIL", "EXPERT CONTABIL") -> "Contabilitate"
             any("ABONAMENT", "SUBSCRIPTION", "LICENTA", "LICENȚĂ", "SOFTWARE", "CLOUD", "GOOGLE", "MICROSOFT", "ADOBE", "GITHUB") -> "Abonamente software"
             any("ENEL", "E.ON", "EON ", "ELECTRICA", "ENGIE", "DIGI", "RCS", "ORANGE", "VODAFONE", "TELEKOM", "APA NOVA", "ENERGIE", "GAZE", "INTERNET") -> "Utilități"
+            any("MOTORINA", "MOTORINĂ", "BENZINA", "BENZINĂ", "DIESEL", "GPL", "CARBURANT", "COMBUSTIBIL", "ADBLUE") -> "Combustibil"
             any("LAPTOP", "MONITOR", "CALCULATOR", "IMPRIMANT", "TELEFON", "TASTATUR", "MOUSE", "EMAG", "ALTEX", "FLANCO", "DANTE INTERNATIONAL") -> "Echipamente"
             else -> "Altele"
         }
