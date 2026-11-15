@@ -15,12 +15,14 @@ object ReceiptParser {
     const val OWN_CIF = "55557417"
 
     /** CIF-ul poate apărea ca "RO55557417", "RO 5555 7417", "CUI: 55557417" etc. OCR confundă uneori O/0 etc. */
-    fun containsOwnCif(text: String): Boolean {
-        val digitsOnly = text.uppercase()
-            .replace('O', '0').replace('S', '5').replace('I', '1').replace('L', '1')
-            .replace(Regex("[\\s.\\-]"), "")
-        return Regex("(?<!\\d)$OWN_CIF(?!\\d)").containsMatchIn(digitsOnly)
-    }
+    // fiecare cifră acceptă confuziile tipice OCR (S→5, I/L→1), cu spații/puncte/cratime între cifre
+    private val cifRegex = Regex(
+        "(?<![0-9])" + OWN_CIF.map { c ->
+            when (c) { '5' -> "[5S]"; '1' -> "[1IL|]"; '0' -> "[0O]"; else -> c.toString() }
+        }.joinToString("[\\s.\\-]?") + "(?![0-9])"
+    )
+
+    fun containsOwnCif(text: String): Boolean = cifRegex.containsMatchIn(text.uppercase())
 
     private val dateRegexes = listOf(
         Regex("(?<!\\d)(\\d{1,2})[./\\-](\\d{1,2})[./\\-](\\d{4})(?!\\d)") to "dmy",
@@ -86,7 +88,7 @@ object ReceiptParser {
     /** Venit = documentul e emis DE noi: CIF-ul nostru apare înaintea secțiunii Client/Cumpărător. */
     fun isIncome(text: String): Boolean {
         val up = text.uppercase()
-        val cif = up.indexOf(OWN_CIF)
+        val cif = cifRegex.find(up)?.range?.first ?: -1
         val buyer = Regex("CUMP[AĂ]R[AĂ]TOR|CLIENT|BENEFICIAR").find(up)?.range?.first ?: -1
         return cif >= 0 && buyer >= 0 && cif < buyer && Regex("FURNIZOR|PRESTATOR|EMITENT").containsMatchIn(up.substring(0, cif))
     }
