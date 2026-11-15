@@ -113,9 +113,10 @@ function instaleazaPdfLunar() {
     .filter(t => t.getHandlerFunction() === 'genereazaPdfLunaTrecuta')
     .forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('genereazaPdfLunaTrecuta').timeBased().onMonthDay(1).atHour(7).create();
+  console.log('Gata: PDF-ul registrului se va genera automat pe 1 ale fiecărei luni.');
   try {
-    SpreadsheetApp.getUi().alert('Gata: PDF-ul registrului se va genera automat pe 1 ale fiecărei luni.');
-  } catch (e) { /* rulat din editor */ }
+    SpreadsheetApp.getActive().toast('PDF-ul registrului se va genera automat pe 1 ale fiecărei luni.', 'Contabil Primar', 8);
+  } catch (e) { /* fără foaie deschisă */ }
 }
 
 function genereazaPdfLunaTrecuta() {
@@ -201,7 +202,8 @@ function instaleazaOblio() {
     .filter(t => t.getHandlerFunction() === 'sincronizeazaOblio')
     .forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('sincronizeazaOblio').timeBased().everyDays(1).atHour(6).create();
-  sincronizeazaOblio();
+  const r = sincronizeazaOblio();
+  console.log('Oblio: ' + r.importate + ' încasări importate, ' + r.neincasate + ' facturi neîncasate.');
 }
 
 function oblioToken_() {
