@@ -6,6 +6,15 @@ android {
         applicationId = "ro.cretu.bonscanner"
         minSdk = 26; targetSdk = 34; versionCode = 2; versionName = "1.1"
     }
+    // cheie de semnare fixă: actualizările se instalează peste versiunea veche, fără dezinstalare
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("contabil-primar.keystore")
+            storePassword = "contabilprimar"
+            keyAlias = "contabilprimar"
+            keyPassword = "contabilprimar"
+        }
+    }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
 }
