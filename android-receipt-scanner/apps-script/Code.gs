@@ -74,3 +74,99 @@ function doGet() {
 function out(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
 }
+
+/* =====================================================================
+ * PDF LUNAR – Registrul de încasări și plăți
+ * Pe 1 ale lunii generează PDF-ul lunii trecute din tab-ul "Tipărire registru",
+ * îl salvează în Drive (Contabil Primar / Registru <an>) și îl trimite pe email.
+ * Instalare: rulează o singură dată funcția instaleazaPdfLunar().
+ * ===================================================================== */
+const PRINT_SHEET = 'Tipărire registru';
+const LUNI = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 'iulie',
+  'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];
+
+/** Meniul "Contabil Primar" din sheet. */
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('Contabil Primar')
+    .addItem('Generează PDF pentru o lună…', 'genereazaPdfManual')
+    .addItem('Generează PDF pentru luna trecută', 'genereazaPdfLunaTrecuta')
+    .addSeparator()
+    .addItem('Activează PDF automat lunar', 'instaleazaPdfLunar')
+    .addToUi();
+}
+
+/** Rulează o dată: creează declanșatorul lunar (ziua 1, ora 7). */
+function instaleazaPdfLunar() {
+  ScriptApp.getProjectTriggers()
+    .filter(t => t.getHandlerFunction() === 'genereazaPdfLunaTrecuta')
+    .forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('genereazaPdfLunaTrecuta').timeBased().onMonthDay(1).atHour(7).create();
+  try {
+    SpreadsheetApp.getUi().alert('Gata: PDF-ul registrului se va genera automat pe 1 ale fiecărei luni.');
+  } catch (e) { /* rulat din editor */ }
+}
+
+function genereazaPdfLunaTrecuta() {
+  const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+  const azi = new Date();
+  const an = Number(Utilities.formatDate(azi, tz, 'yyyy'));
+  const luna = Number(Utilities.formatDate(azi, tz, 'M'));
+  const l = luna === 1 ? 12 : luna - 1;
+  genereazaPdf(l, luna === 1 ? an - 1 : an);
+}
+
+function genereazaPdfManual() {
+  const ui = SpreadsheetApp.getUi();
+  const r = ui.prompt('PDF registru', 'Luna și anul (ex: 11.2026):', ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const m = r.getResponseText().trim().match(/^(\d{1,2})[./\-\s](\d{4})$/);
+  if (!m || +m[1] < 1 || +m[1] > 12) { ui.alert('Format greșit. Scrie de exemplu 11.2026'); return; }
+  const f = genereazaPdf(+m[1], +m[2]);
+  ui.alert('PDF salvat în Drive și trimis pe email:\n' + f.getName());
+}
+
+/** Generează PDF-ul pentru luna/anul date; îl salvează și îl trimite. */
+function genereazaPdf(luna, an) {
+  const ss = SpreadsheetApp.getActive();
+  const sh = ss.getSheetByName(PRINT_SHEET);
+  const vechi = [sh.getRange('B6').getValue(), sh.getRange('D6').getValue()];
+  sh.getRange('B6').setValue(luna);
+  sh.getRange('D6').setValue(an);
+  SpreadsheetApp.flush();
+  Utilities.sleep(3000); // lasă formulele să se recalculeze
+
+  const url = 'https://docs.google.com/spreadsheets/d/' + ss.getId() + '/export?' + [
+    'format=pdf', 'gid=' + sh.getSheetId(), 'size=A4', 'portrait=true', 'fitw=true',
+    'gridlines=false', 'printtitle=false', 'sheetnames=false', 'fzr=true',
+    'pagenum=CENTER', 'top_margin=0.5', 'bottom_margin=0.5', 'left_margin=0.5', 'right_margin=0.5',
+  ].join('&');
+  const resp = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } });
+  const nume = 'Registru ' + an + '-' + String(luna).padStart(2, '0') + ' ' + LUNI[luna - 1] + '.pdf';
+  const blob = resp.getBlob().setName(nume);
+
+  // Drive: Contabil Primar / Registru <an>  (înlocuiește fișierul dacă există deja)
+  const folder = subfolder(subfolder(DriveApp.getRootFolder(), 'Contabil Primar'), 'Registru ' + an);
+  const exist = folder.getFilesByName(nume);
+  while (exist.hasNext()) exist.next().setTrashed(true);
+  const file = folder.createFile(blob);
+
+  // Email către proprietarul scriptului
+  const email = Session.getEffectiveUser().getEmail();
+  MailApp.sendEmail({
+    to: email,
+    subject: 'Registru de încasări și plăți – ' + LUNI[luna - 1] + ' ' + an,
+    body: 'Atașat este Registrul de încasări și plăți pentru ' + LUNI[luna - 1] + ' ' + an +
+      '.\nO copie este salvată în Google Drive: ' + file.getUrl() + '\n\n— Contabil Primar',
+    attachments: [blob],
+  });
+
+  // revine la luna afișată înainte
+  sh.getRange('B6').setValue(vechi[0]);
+  sh.getRange('D6').setValue(vechi[1]);
+  return file;
+}
+
+function subfolder(parent, name) {
+  const it = parent.getFoldersByName(name);
+  return it.hasNext() ? it.next() : parent.createFolder(name);
+}
