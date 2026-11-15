@@ -27,6 +27,7 @@ class MainActivity : AppCompatActivity() {
     private val fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy")
     private lateinit var status: TextView
     private lateinit var btnSend: Button
+    private val spinner by lazy { findViewById<Spinner>(R.id.spCategory) }
     private val prefs by lazy { getSharedPreferences("cfg", MODE_PRIVATE) }
 
     private val scanner by lazy {
@@ -55,6 +56,8 @@ class MainActivity : AppCompatActivity() {
         btnSend = findViewById(R.id.btnSend)
         val etUrl = findViewById<EditText>(R.id.etUrl)
         etUrl.setText(prefs.getString("url", ""))
+        spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, ReceiptParser.CATEGORIES)
+        spinner.setSelection(ReceiptParser.CATEGORIES.indexOf("Altele"))
 
         findViewById<Button>(R.id.btnScan).setOnClickListener {
             scanner.getStartScanIntent(this)
@@ -74,19 +77,27 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val rec = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-                val sb = StringBuilder()
-                for (u in uris) sb.append(rec.process(InputImage.fromFilePath(this@MainActivity, u)).await().text).append('\n')
-                val text = sb.toString()
+                val ocr = mutableListOf<OcrLine>()
+                uris.forEachIndexed { page, u ->
+                    val offset = page * 100_000 // paginile una sub alta
+                    val res = rec.process(InputImage.fromFilePath(this@MainActivity, u)).await()
+                    for (block in res.textBlocks) for (line in block.lines) {
+                        val box = line.boundingBox ?: continue
+                        ocr += OcrLine(line.text, box.left, box.top + offset, box.bottom + offset)
+                    }
+                }
+                val rows = ReceiptParser.buildRows(ocr)
+                val text = rows.joinToString("\n")
                 if (!ReceiptParser.containsOwnCif(text)) {
                     clearFields()
                     setStatus("CUI ${ReceiptParser.OWN_CIF} NU a fost găsit pe document. Nu se trimite nimic.", false)
                     return@launch
                 }
-                val d = ReceiptParser.parse(text)
+                val d = ReceiptParser.parse(rows)
                 field(R.id.etDate).setText(d.date?.format(fmt) ?: "")
                 field(R.id.etDoc).setText(d.document)
                 field(R.id.etPartner).setText(d.partner)
-                field(R.id.etCategory).setText(if (d.isIncome) "Încasare servicii IT" else "Cheltuieli")
+                spinner.setSelection(ReceiptParser.CATEGORIES.indexOf(d.category).coerceAtLeast(0))
                 field(R.id.etAmount).setText(d.amount?.let { "%.2f".format(java.util.Locale.US, it) } ?: "")
                 findViewById<RadioButton>(if (d.isIncome) R.id.rbIncasare else R.id.rbPlata).isChecked = true
                 findViewById<RadioButton>(if (d.paidByCard) R.id.rbBanca else R.id.rbNumerar).isChecked = true
@@ -110,7 +121,7 @@ class MainActivity : AppCompatActivity() {
             .put("date", date.toString())
             .put("document", field(R.id.etDoc).text.toString())
             .put("partner", field(R.id.etPartner).text.toString())
-            .put("category", field(R.id.etCategory).text.toString())
+            .put("category", spinner.selectedItem as String)
             .put("amount", amount)
             .put("column", when { income && bank -> "F"; income -> "G"; bank -> "H"; else -> "I" })
         btnSend.isEnabled = false
@@ -128,7 +139,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun field(id: Int) = findViewById<EditText>(id)
-    private fun clearFields() = listOf(R.id.etDate, R.id.etDoc, R.id.etPartner, R.id.etCategory, R.id.etAmount).forEach { field(it).setText("") }
+    private fun clearFields() = listOf(R.id.etDate, R.id.etDoc, R.id.etPartner, R.id.etAmount).forEach { field(it).setText("") }
     private fun setStatus(msg: String, ok: Boolean?) {
         status.text = msg
         status.setTextColor(when (ok) { true -> Color.rgb(0, 128, 0); false -> Color.RED; null -> Color.GRAY })
