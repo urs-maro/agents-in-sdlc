@@ -3,15 +3,21 @@
     android:layout_width="match_parent" android:layout_height="match_parent">
 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
     android:orientation="vertical" android:padding="16dp">
+    <!-- rândul 1: pictograma + titlul -->
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="12dp">
-        <ImageView android:layout_width="40dp" android:layout_height="40dp" android:src="@mipmap/ic_launcher" />
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <ImageView android:layout_width="44dp" android:layout_height="44dp" android:src="@mipmap/ic_launcher" />
         <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
-            android:layout_marginStart="12dp" android:text="@string/app_name" android:textSize="22sp" android:textStyle="bold" />
+            android:layout_marginStart="12dp" android:text="@string/app_name" android:textSize="24sp"
+            android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout>
+    <!-- rândul 2: butoanele -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="end|center_vertical" android:layout_marginBottom="8dp">
         <com.google.android.material.button.MaterialButton android:id="@+id/btnSettings"
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:minWidth="0dp" android:text="⚙️" android:contentDescription="Setări" />
+            android:text="⚙️ Setări" android:contentDescription="Setări" />
         <com.google.android.material.button.MaterialButton android:id="@+id/btnUpdate"
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Actualizare" />
@@ -23,7 +29,8 @@
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:text="Scanează bon / factură" />
     <ImageView android:id="@+id/preview" android:layout_width="match_parent"
-        android:layout_height="220dp" android:adjustViewBounds="true" android:scaleType="fitCenter" />
+        android:layout_height="220dp" android:adjustViewBounds="true" android:scaleType="fitCenter"
+        android:layout_marginTop="8dp" android:visibility="gone" />
     <TextView android:id="@+id/status" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:paddingVertical="8dp" android:textStyle="bold" />
     <EditText android:id="@+id/etDate" android:hint="Data (zz.ll.aaaa)" android:layout_width="match_parent" android:layout_height="wrap_content" />

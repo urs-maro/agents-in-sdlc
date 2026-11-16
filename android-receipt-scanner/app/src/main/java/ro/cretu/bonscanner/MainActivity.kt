@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
         if (res.resultCode != Activity.RESULT_OK) return@registerForActivityResult
         val pages = GmsDocumentScanningResult.fromActivityResultIntent(res.data)?.pages.orEmpty()
         if (pages.isEmpty()) return@registerForActivityResult
-        findViewById<ImageView>(R.id.preview).setImageURI(pages.first().imageUri)
+        findViewById<ImageView>(R.id.preview).apply { setImageURI(pages.first().imageUri); visibility = android.view.View.VISIBLE }
         recognize(pages.map { it.imageUri })
     }
 
