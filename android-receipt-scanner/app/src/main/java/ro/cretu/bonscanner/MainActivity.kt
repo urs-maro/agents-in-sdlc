@@ -55,6 +55,17 @@ class MainActivity : AppCompatActivity() {
         status = findViewById(R.id.status)
         btnSend = findViewById(R.id.btnSend)
         findViewById<Button>(R.id.btnSettings).setOnClickListener { showSettings() }
+        val cbPersonal = findViewById<CheckBox>(R.id.cbPersonal)
+        cbPersonal.setOnCheckedChangeListener { _, checked ->
+            // banii personali nu trec prin contul firmei: plata se trece la Numerar
+            if (checked) findViewById<RadioButton>(R.id.rbNumerar).isChecked = true
+            findViewById<RadioButton>(R.id.rbBanca).isEnabled = !checked
+        }
+        findViewById<RadioGroup>(R.id.rgFlow).setOnCheckedChangeListener { _, id ->
+            val plata = id == R.id.rbPlata
+            cbPersonal.isEnabled = plata
+            if (!plata) cbPersonal.isChecked = false
+        }
         updateConnectionLabel()
         if (scriptUrl().isBlank()) showSettings()
         spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, ReceiptParser.CATEGORIES)
@@ -118,7 +129,8 @@ class MainActivity : AppCompatActivity() {
         val amount = field(R.id.etAmount).text.toString().replace(',', '.').toDoubleOrNull()
         if (date == null || amount == null) { setStatus("Data sau suma invalidă.", false); return }
         val income = findViewById<RadioButton>(R.id.rbIncasare).isChecked
-        val bank = findViewById<RadioButton>(R.id.rbBanca).isChecked
+        val personal = findViewById<CheckBox>(R.id.cbPersonal).isChecked && !income
+        val bank = findViewById<RadioButton>(R.id.rbBanca).isChecked && !personal
         val payload = JSONObject()
             .put("cif", ReceiptParser.OWN_CIF)
             .put("date", date.toString())
@@ -127,13 +139,19 @@ class MainActivity : AppCompatActivity() {
             .put("category", spinner.selectedItem as String)
             .put("amount", amount)
             .put("column", when { income && bank -> "F"; income -> "G"; bank -> "H"; else -> "I" })
+            .put("aport", personal)
         btnSend.isEnabled = false
         setStatus("Trimit…", null)
         lifecycleScope.launch {
             try {
                 val r = withContext(Dispatchers.IO) { SheetsClient.send(url, payload) }
                 val j = runCatching { JSONObject(r) }.getOrNull()
-                if (j?.optBoolean("ok") == true) { setStatus("Adăugat în Registru (rândul ${j.optInt("row")}) ✓", true); clearFields() }
+                if (j?.optBoolean("ok") == true) {
+                    if (personal && !j.has("aportRow"))
+                        setStatus("Plata a fost adăugată (rândul ${j.optInt("row")}), dar scriptul din Google Sheets e vechi și NU a adăugat aportul. Actualizează scriptul (Code.gs) și adaugă aportul manual.", false)
+                    else setStatus("Adăugat în Registru (rândul ${j.optInt("row")})" + (if (personal) " + aport titular" else "") + " ✓", true)
+                    clearFields()
+                }
                 else { setStatus("Răspuns neașteptat: $r", false); btnSend.isEnabled = true }
             } catch (e: Exception) {
                 setStatus("Eroare la trimitere: ${e.message}", false); btnSend.isEnabled = true
@@ -253,7 +271,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun field(id: Int) = findViewById<EditText>(id)
-    private fun clearFields() = listOf(R.id.etDate, R.id.etDoc, R.id.etPartner, R.id.etAmount).forEach { field(it).setText("") }
+    private fun clearFields() {
+        listOf(R.id.etDate, R.id.etDoc, R.id.etPartner, R.id.etAmount).forEach { field(it).setText("") }
+        findViewById<CheckBox>(R.id.cbPersonal).isChecked = false
+    }
     private fun setStatus(msg: String, ok: Boolean?) {
         status.text = msg
         status.setTextColor(when (ok) { true -> Color.rgb(0, 128, 0); false -> Color.RED; null -> Color.GRAY })

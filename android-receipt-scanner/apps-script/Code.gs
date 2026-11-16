@@ -7,7 +7,7 @@
  */
 const SHEET = 'Registru';
 const FIRST_ROW = 11;   // primul rând cu înregistrări
-const VERSION = 'v4-oblio';
+const VERSION = 'v5-aport';
 
 function doPost(e) {
   const lock = LockService.getScriptLock();
@@ -17,6 +17,16 @@ function doPost(e) {
     if (String(p.cif || '') !== '55557417') return out({ ok: false, error: 'CUI lipsă' });
     if (!/^[FGHI]$/.test(p.column)) return out({ ok: false, error: 'coloană invalidă' });
     if (!/^\d{4}-\d{2}-\d{2}$/.test(p.date)) return out({ ok: false, error: 'dată invalidă' });
+    if (p.aport === true && p.column === 'I') {
+      // plată din banii personali ai titularului: aport (încasare numerar) + plata (numerar), aceeași zi
+      const aport = {
+        date: p.date, document: 'Aport titular',
+        partner: 'Titular – plată ' + (p.partner || p.document || '') + ' din bani personali',
+        category: 'Aport / retragere titular', amount: p.amount, column: 'G',
+      };
+      const rows = adaugaRanduri([aport, p]);
+      return out({ ok: true, row: rows[1], aportRow: rows[0], version: VERSION });
+    }
     const rows = adaugaRanduri([p]);
     return out({ ok: true, row: rows[0], version: VERSION });
   } catch (err) {
@@ -64,7 +74,7 @@ function adaugaRanduri(items) {
   if (end < FIRST_ROW) return [];
 
   // sortare cronologică: doar datele (B–I); formulele rămân pe loc
-  sh.getRange(FIRST_ROW, 2, end - FIRST_ROW + 1, 8).sort({ column: 2, ascending: true });
+  sh.getRange(FIRST_ROW, 2, end - FIRST_ROW + 1, 8).sort([{ column: 2, ascending: true }, { column: 7, ascending: false }]);
 
   const sorted = sh.getRange(FIRST_ROW, 2, end - FIRST_ROW + 1, 3).getValues().map(r => [
     r[0] instanceof Date ? Math.round((Date.UTC(r[0].getFullYear(), r[0].getMonth(), r[0].getDate()) - Date.UTC(1899, 11, 30)) / 86400000) : r[0],
@@ -75,7 +85,7 @@ function adaugaRanduri(items) {
   });
 }
 
-/** Deschide linkul /exec în browser: dacă vezi "v4-oblio", rulează scriptul corect. */
+/** Deschide linkul /exec în browser: dacă vezi "v5-aport", rulează scriptul corect. */
 function doGet() {
   return out({ ok: true, version: VERSION });
 }

@@ -39,6 +39,8 @@
         <RadioButton android:id="@+id/rbNumerar" android:text="Numerar" android:checked="true" android:layout_width="wrap_content" android:layout_height="wrap_content" />
         <RadioButton android:id="@+id/rbBanca" android:text="Bancă / card" android:layout_width="wrap_content" android:layout_height="wrap_content" />
     </RadioGroup>
+    <CheckBox android:id="@+id/cbPersonal" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Plătit din banii mei personali (card personal sau cash) – adaugă și aportul titularului" />
     <com.google.android.material.button.MaterialButton android:id="@+id/btnSend"
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:enabled="false" android:text="Trimite în Google Sheets" />
