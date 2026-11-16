@@ -60,6 +60,8 @@ class MainActivity : AppCompatActivity() {
         spinner.setSelection(ReceiptParser.CATEGORIES.indexOf("Altele"))
 
         findViewById<Button>(R.id.btnAbout).setOnClickListener { showAbout() }
+        findViewById<Button>(R.id.btnUpdate).setOnClickListener { onUpdateClick() }
+        checkForUpdate()
         findViewById<Button>(R.id.btnScan).setOnClickListener {
             scanner.getStartScanIntent(this)
                 .addOnSuccessListener { scanLauncher.launch(IntentSenderRequest.Builder(it).build()) }
@@ -137,6 +139,46 @@ class MainActivity : AppCompatActivity() {
                 setStatus("Eroare la trimitere: ${e.message}", false); btnSend.isEnabled = true
             }
         }
+    }
+
+    // ---------- actualizare ----------
+    private var latestVersion: String? = null
+
+    private fun currentVersion(): String = packageManager.getPackageInfo(packageName, 0).versionName ?: "0"
+
+    /** Citește versiunea publicată pe GitHub (titlul release-ului: "Contabil Primar v1.3"). */
+    private fun checkForUpdate() {
+        lifecycleScope.launch {
+            latestVersion = withContext(Dispatchers.IO) { UpdateChecker.latestVersion() }
+            val btn = findViewById<Button>(R.id.btnUpdate)
+            if (latestVersion != null && UpdateChecker.isNewer(latestVersion!!, currentVersion())) {
+                btn.text = "Actualizare v$latestVersion"
+                btn.setTextColor(Color.rgb(43, 182, 115))
+            }
+        }
+    }
+
+    private fun onUpdateClick() {
+        val cur = currentVersion()
+        val latest = latestVersion
+        val builder = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+        if (latest != null && UpdateChecker.isNewer(latest, cur)) {
+            builder.setTitle("Versiune nouă: $latest")
+                .setMessage("Ai versiunea $cur. Descarci versiunea $latest și o instalezi peste cea actuală; datele și linkul scriptului rămân salvate.")
+                .setPositiveButton("Descarcă") { _, _ -> openDownload() }
+                .setNegativeButton("Mai târziu", null)
+        } else {
+            builder.setTitle("Contabil Primar $cur")
+                .setMessage(if (latest == null) "Nu am putut verifica acum dacă există o versiune nouă."
+                            else "Ai ultima versiune.")
+                .setPositiveButton("OK", null)
+                .setNeutralButton("Descarcă oricum") { _, _ -> openDownload() }
+        }
+        builder.show()
+    }
+
+    private fun openDownload() {
+        startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(UpdateChecker.DOWNLOAD_URL)))
     }
 
     private fun showAbout() {
