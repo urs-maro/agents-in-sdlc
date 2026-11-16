@@ -82,4 +82,15 @@ class ReceiptParserTest {
         val rows = listOf("S.C. OMV PETROM MARKETING S.R.L.", "BON FISCAL", "1110403/2/261104/111", "NUMAR TRANZACTIE:", "* 4 MOTORINA STANDARD", "TOTAL:   456,91")
         assertEquals("Bon fiscal 1110403/2/261104/111", ReceiptParser.parse(rows).document)
     }
+
+    @Test fun autoCategory() {
+        assertEquals(ReceiptParser.AUTO, ReceiptParser.guessCategory("AUTO SERVICE X SRL\nSCHIMB ULEI MOTOR\nFILTRU ULEI", false))
+        assertEquals(ReceiptParser.AUTO, ReceiptParser.guessCategory("CNAIR\nROVINIETA 12 LUNI", false))
+        assertEquals("Combustibil", ReceiptParser.guessCategory("OMV PETROM\nMOTORINA STANDARD\nSPALATORIE", false))
+    }
+
+    @Test fun rcaOnlyAsWholeWord() {
+        assertEquals("Altele", ReceiptParser.guessCategory("PROFI ROM FOOD SRL\nPAINE\nMASTERCARD CONTACTLESS", false))
+        assertEquals(ReceiptParser.AUTO, ReceiptParser.guessCategory("ALLIANZ TIRIAC\nPOLITA RCA 6 LUNI", false))
+    }
 }

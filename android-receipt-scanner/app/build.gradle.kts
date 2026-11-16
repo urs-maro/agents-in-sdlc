@@ -4,7 +4,7 @@ android {
     compileSdk = 34
     defaultConfig {
         applicationId = "ro.cretu.bonscanner"
-        minSdk = 26; targetSdk = 34; versionCode = 2; versionName = "1.1"
+        minSdk = 26; targetSdk = 34; versionCode = 3; versionName = "1.2"
     }
     // cheie de semnare fixă: actualizările se instalează peste versiunea veche, fără dezinstalare
     signingConfigs {

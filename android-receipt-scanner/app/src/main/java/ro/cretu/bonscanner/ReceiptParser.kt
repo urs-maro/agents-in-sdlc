@@ -17,11 +17,13 @@ data class OcrLine(val text: String, val left: Int, val top: Int, val bottom: In
 
 object ReceiptParser {
     const val OWN_CIF = "55557417"
+    const val AUTO = "Auto (întreținere, asigurări, taxe)"
 
     /** Categoriile din lista de validare a coloanei E din foaia "Registru". */
     val CATEGORIES = listOf(
         "Încasare servicii IT", "Taxe și impozite", "Contabilitate",
-        "Abonamente software", "Echipamente", "Utilități", "Combustibil", "Altele",
+        "Abonamente software", "Echipamente", "Utilități", "Combustibil",
+        AUTO, "Altele",
     )
 
     // ---------- reconstruirea rândurilor după poziție ----------
@@ -191,12 +193,21 @@ object ReceiptParser {
         if (isIncome) return "Încasare servicii IT"
         val up = text.uppercase()
         fun any(vararg k: String) = k.any { up.contains(it) }
+        // cuvinte scurte: doar ca cuvânt întreg ("RCA" apare și în "MASTERCARD")
+        fun word(vararg k: String) = k.any { Regex("(?<![A-ZĂÂÎȘȚ])" + Regex.escape(it) + "(?![A-ZĂÂÎȘȚ])").containsMatchIn(up) }
         return when {
-            any("ANAF", "IMPOZIT", "TAXA ", "CAS ", "CASS", "TREZORERIE") -> "Taxe și impozite"
-            any("CONTABIL", "EXPERT CONTABIL") -> "Contabilitate"
+            any("MOTORINA", "MOTORINĂ", "BENZINA", "BENZINĂ", "CARBURANT", "COMBUSTIBIL", "ADBLUE") ||
+                word("DIESEL", "GPL") -> "Combustibil"
+            any("SERVICE AUTO", "AUTOSERVICE", "SERVICE-AUTO", "VULCANIZARE", "ANVELOP", "PIESE AUTO", "AUTOPIESE",
+                "ULEI MOTOR", "FILTRU ULEI", "PLACUTE FRANA", "PLĂCUȚE FRÂNĂ", "INSPECTIA TEHNICA", "INSPECȚIA TEHNICĂ",
+                "CASCO", "ROVINIET", "CNAIR", "TAXA DE POD", "PARCARE", "PARKING",
+                "SPALATORIE", "SPĂLĂTORIE", "CAR WASH", "LICHID PARBRIZ", "ANTIGEL") ||
+                word("RCA", "ITP") -> AUTO
+            any("ANAF", "IMPOZIT", "TREZORERIE") || word("CAS", "CASS", "TAXA") -> "Taxe și impozite"
+            any("CONTABIL") -> "Contabilitate"
             any("ABONAMENT", "SUBSCRIPTION", "LICENTA", "LICENȚĂ", "SOFTWARE", "CLOUD", "GOOGLE", "MICROSOFT", "ADOBE", "GITHUB") -> "Abonamente software"
-            any("ENEL", "E.ON", "EON ", "ELECTRICA", "ENGIE", "DIGI", "RCS", "ORANGE", "VODAFONE", "TELEKOM", "APA NOVA", "ENERGIE", "GAZE", "INTERNET") -> "Utilități"
-            any("MOTORINA", "MOTORINĂ", "BENZINA", "BENZINĂ", "DIESEL", "GPL", "CARBURANT", "COMBUSTIBIL", "ADBLUE") -> "Combustibil"
+            any("ENEL", "E.ON", "ELECTRICA", "ENGIE", "TELEKOM", "VODAFONE", "APA NOVA", "ENERGIE ELECTRICA", "GAZE NATURALE") ||
+                word("DIGI", "RCS", "ORANGE", "EON", "INTERNET") -> "Utilități"
             any("LAPTOP", "MONITOR", "CALCULATOR", "IMPRIMANT", "TELEFON", "TASTATUR", "MOUSE", "EMAG", "ALTEX", "FLANCO", "DANTE INTERNATIONAL") -> "Echipamente"
             else -> "Altele"
         }
