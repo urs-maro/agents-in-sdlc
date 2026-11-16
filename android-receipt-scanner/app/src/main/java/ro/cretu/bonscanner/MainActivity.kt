@@ -182,7 +182,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ---------- setări: linkul scriptului ----------
-    private val urlRegex = Regex("^https://script\\.google\\.com/macros/s/[A-Za-z0-9_-]+/exec$")
+    private val urlRegex = Regex("^https://script\\.google\\.com/(macros|a/macros/[^/]+)/s/[A-Za-z0-9_-]+/exec$")
 
     private fun scriptUrl(): String = prefs.getString("url", "").orEmpty().trim()
 
