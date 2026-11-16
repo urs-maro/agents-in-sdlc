@@ -25,4 +25,19 @@ object SheetsClient {
         }
         throw RuntimeException("Prea multe redirecționări")
     }
+
+    /** GET simplu (urmează redirecționările Google) – pentru verificarea linkului. */
+    fun get(url: String): String {
+        var target = url
+        repeat(5) {
+            val c = URL(target).openConnection() as HttpURLConnection
+            c.instanceFollowRedirects = false
+            c.connectTimeout = 15000; c.readTimeout = 20000
+            val code = c.responseCode
+            if (code in 300..399) { target = c.getHeaderField("Location"); c.disconnect(); return@repeat }
+            if (code >= 400) throw RuntimeException("HTTP $code")
+            return c.inputStream.bufferedReader().readText()
+        }
+        throw RuntimeException("Prea multe redirecționări")
+    }
 }

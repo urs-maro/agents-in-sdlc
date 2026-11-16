@@ -54,8 +54,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         status = findViewById(R.id.status)
         btnSend = findViewById(R.id.btnSend)
-        val etUrl = findViewById<EditText>(R.id.etUrl)
-        etUrl.setText(prefs.getString("url", ""))
+        findViewById<Button>(R.id.btnSettings).setOnClickListener { showSettings() }
+        updateConnectionLabel()
+        if (scriptUrl().isBlank()) showSettings()
         spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, ReceiptParser.CATEGORIES)
         spinner.setSelection(ReceiptParser.CATEGORIES.indexOf("Altele"))
 
@@ -68,9 +69,8 @@ class MainActivity : AppCompatActivity() {
                 .addOnFailureListener { setStatus("Scanner indisponibil: ${it.message}", false) }
         }
         btnSend.setOnClickListener {
-            val url = etUrl.text.toString().trim()
-            prefs.edit().putString("url", url).apply()
-            send(url)
+            val url = scriptUrl()
+            if (url.isBlank()) showSettings() else send(url)
         }
     }
 
@@ -179,6 +179,69 @@ class MainActivity : AppCompatActivity() {
 
     private fun openDownload() {
         startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(UpdateChecker.DOWNLOAD_URL)))
+    }
+
+    // ---------- setări: linkul scriptului ----------
+    private val urlRegex = Regex("^https://script\\.google\\.com/macros/s/[A-Za-z0-9_-]+/exec$")
+
+    private fun scriptUrl(): String = prefs.getString("url", "").orEmpty().trim()
+
+    private fun updateConnectionLabel() {
+        val tv = findViewById<TextView>(R.id.tvConn)
+        if (scriptUrl().isBlank()) {
+            tv.text = "Google Sheets neconfigurat – apasă ⚙️"
+            tv.setTextColor(Color.RED)
+        } else {
+            tv.text = "Conectat la Google Sheets ✓"
+            tv.setTextColor(Color.rgb(0, 128, 0))
+        }
+    }
+
+    private fun showSettings() {
+        val v = layoutInflater.inflate(R.layout.dialog_settings, null)
+        val et = v.findViewById<EditText>(R.id.etScriptUrl)
+        val tvVerify = v.findViewById<TextView>(R.id.tvVerify)
+        et.setText(scriptUrl())
+        v.findViewById<Button>(R.id.btnVerify).setOnClickListener {
+            val url = et.text.toString().trim()
+            if (!urlRegex.matches(url)) { tvVerify.text = "✗ Linkul trebuie să înceapă cu https://script.google.com/ și să se termine cu /exec"; tvVerify.setTextColor(Color.RED); return@setOnClickListener }
+            tvVerify.text = "Verific…"; tvVerify.setTextColor(Color.GRAY)
+            lifecycleScope.launch {
+                val r = withContext(Dispatchers.IO) { runCatching { SheetsClient.get(url) } }
+                val ver = r.getOrNull()?.let { runCatching { JSONObject(it).optString("version") }.getOrNull() }
+                if (!ver.isNullOrBlank()) { tvVerify.text = "✓ Scriptul răspunde (versiunea $ver)"; tvVerify.setTextColor(Color.rgb(0, 128, 0)) }
+                else { tvVerify.text = "✗ Nu răspunde scriptul Contabil Primar: ${r.exceptionOrNull()?.message ?: "răspuns neașteptat"}"; tvVerify.setTextColor(Color.RED) }
+            }
+        }
+        val dlg = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Setări").setView(v)
+            .setPositiveButton("Salvează", null)
+            .setNegativeButton("Anulează", null)
+            .create()
+        dlg.setOnShowListener {
+            dlg.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val url = et.text.toString().trim()
+                if (!urlRegex.matches(url)) {
+                    tvVerify.text = "✗ Link invalid: trebuie să înceapă cu https://script.google.com/ și să se termine cu /exec"
+                    tvVerify.setTextColor(Color.RED)
+                    return@setOnClickListener
+                }
+                val save = {
+                    prefs.edit().putString("url", url).apply()
+                    updateConnectionLabel()
+                    dlg.dismiss()
+                }
+                val old = scriptUrl()
+                if (old.isNotBlank() && old != url) {
+                    com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                        .setTitle("Schimbi linkul scriptului?")
+                        .setMessage("Bonurile se vor trimite către noul script. Ești sigur?")
+                        .setPositiveButton("Da, schimbă") { _, _ -> save() }
+                        .setNegativeButton("Nu", null).show()
+                } else save()
+            }
+        }
+        dlg.show()
     }
 
     private fun showAbout() {
