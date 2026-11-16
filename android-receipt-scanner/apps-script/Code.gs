@@ -169,7 +169,8 @@ function genereazaPdf(luna, an) {
     to: email,
     subject: 'Registru de încasări și plăți – ' + LUNI[luna - 1] + ' ' + an,
     body: 'Atașat este Registrul de încasări și plăți pentru ' + LUNI[luna - 1] + ' ' + an +
-      '.\nO copie este salvată în Google Drive: ' + file.getUrl() + '\n\n— Contabil Primar',
+      '.\nO copie este salvată în Google Drive: ' + file.getUrl() + '\n\n' + rezumatTaxe_(luna, an) +
+      '\n\n— Contabil Primar',
     attachments: [blob],
   });
 
@@ -177,6 +178,29 @@ function genereazaPdf(luna, an) {
   sh.getRange('B6').setValue(vechi[0]);
   sh.getRange('D6').setValue(vechi[1]);
   return file;
+}
+
+/** Text pentru email din tab-ul "Taxe": suma de pus deoparte și obligațiile lunii următoare. */
+function rezumatTaxe_(luna, an) {
+  const sh = SpreadsheetApp.getActive().getSheetByName('Taxe');
+  if (!sh) return '';
+  const vechi = [sh.getRange('B4').getFormula() || sh.getRange('B4').getValue(),
+                 sh.getRange('B5').getFormula() || sh.getRange('B5').getValue()];
+  sh.getRange('B4').setValue(an);
+  sh.getRange('B5').setValue(luna);
+  SpreadsheetApp.flush();
+  const suma = sh.getRange('B30').getDisplayValue();
+  const estimat = sh.getRange('B26').getDisplayValue();
+  const titlu = sh.getRange('A33').getDisplayValue();
+  const oblig = sh.getRange('A35:B49').getDisplayValues().filter(r => r[1])
+    .map(r => '  • ' + (r[0] ? r[0] + ' – ' : '') + r[1]).join('\n');
+  // revine la formulele implicite
+  [['B4', vechi[0]], ['B5', vechi[1]]].forEach(([c, v]) =>
+    String(v).charAt(0) === '=' ? sh.getRange(c).setFormula(v) : sh.getRange(c).setValue(v));
+  return 'TAXE (estimare – verifică cu contabilul):\n' +
+    '  De pus deoparte acum: ' + suma + '\n' +
+    '  Total taxe estimate pe an: ' + estimat + '\n\n' +
+    titlu + ':\n' + (oblig || '  • nimic special');
 }
 
 function subfolder(parent, name) {
