@@ -278,8 +278,9 @@ function nr_(v) { return Number(String(v == null ? 0 : v).replace(',', '.')) || 
 /** Toate facturile emise de la OBLIO_START (implicit 1 ianuarie anul curent). */
 function oblioFacturi_() {
   const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+  // implicit: de la 1 ianuarie a ANULUI TRECUT, ca să prindă și facturile din decembrie încasate în ianuarie
   const start = PropertiesService.getScriptProperties().getProperty('OBLIO_START') ||
-    Utilities.formatDate(new Date(), tz, 'yyyy') + '-01-01';
+    (Number(Utilities.formatDate(new Date(), tz, 'yyyy')) - 1) + '-01-01';
   const all = [];
   for (let offset = 0; ; offset += 100) {
     const page = oblioGet_('/docs/invoice/list', {
