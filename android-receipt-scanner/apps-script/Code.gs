@@ -385,3 +385,37 @@ function scrieNeincasate_(rows) {
   }
   sh.autoResizeColumns(1, 8);
 }
+
+/* =====================================================================
+ * TEST (temporar): există în API-ul Oblio o listă de facturi PRIMITE?
+ * Doar citește. Rulează funcția din editor și uită-te în Execution log.
+ * Nu afișează cheia API; arată doar codul de răspuns și începutul răspunsului.
+ * ===================================================================== */
+function testOblioFacturiPrimite() {
+  const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+  const an = Number(Utilities.formatDate(new Date(), tz, 'yyyy'));
+  const dupa = (an - 1) + '-01-01';
+  const candidate = [
+    ['/docs/invoice/list', { cif: OBLIO_CIF, issuedAfter: dupa, limitPerPage: 1 }],          // control: trebuie să meargă
+    ['/docs/einvoice/list', { cif: OBLIO_CIF, issuedAfter: dupa, limitPerPage: 5 }],
+    ['/docs/einvoice', { cif: OBLIO_CIF }],
+    ['/docs/received/list', { cif: OBLIO_CIF, issuedAfter: dupa, limitPerPage: 5 }],
+    ['/docs/supplier_invoice/list', { cif: OBLIO_CIF, issuedAfter: dupa, limitPerPage: 5 }],
+    ['/docs/supplier/list', { cif: OBLIO_CIF, issuedAfter: dupa, limitPerPage: 5 }],
+    ['/docs/purchase/list', { cif: OBLIO_CIF, issuedAfter: dupa, limitPerPage: 5 }],
+    ['/docs/expense/list', { cif: OBLIO_CIF, issuedAfter: dupa, limitPerPage: 5 }],
+    ['/spv/list', { cif: OBLIO_CIF }],
+    ['/einvoice/received', { cif: OBLIO_CIF }],
+    ['/nomenclature/companies', {}],                                                          // control: firmele contului
+  ];
+  const token = oblioToken_();
+  candidate.forEach(([path, params]) => {
+    const q = Object.keys(params).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k])).join('&');
+    const r = UrlFetchApp.fetch(OBLIO_API + path + (q ? '?' + q : ''), {
+      headers: { Authorization: 'Bearer ' + token }, muteHttpExceptions: true,
+    });
+    console.log(path + ' → HTTP ' + r.getResponseCode() + ' · ' + r.getContentText().slice(0, 300).replace(/\s+/g, ' '));
+    Utilities.sleep(700);
+  });
+  console.log('Gata. Copiază aceste rânduri și trimite-le lui Claude (nu conțin cheia API).');
+}
